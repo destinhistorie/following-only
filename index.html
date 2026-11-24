@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>フォロー中だけ — おすすめなしTwitter風</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="フォロー中だけ">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<style>
+  *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:#000;color:#e7e9ea}
+  .wrap{max-width:600px;margin:0 auto;border-left:1px solid #2f3336;border-right:1px solid #2f3336;min-height:100vh}
+  header{position:sticky;top:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid #2f3336}
+  header h1{font-size:18px;margin:0} header p{margin:4px 0 0;color:#71767b;font-size:13px}
+  .tabs{display:flex;border-bottom:1px solid #2f3336}
+  .tabs button{flex:1;background:none;border:none;color:#e7e9ea;padding:14px 0;font-size:15px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent}
+  .tabs button.active{border-bottom-color:#1d9bf0;color:#fff}
+  .tabs button small{display:block;font-weight:400;color:#71767b;font-size:12px}
+  .note{padding:10px 16px;background:#16181c;color:#e7e9ea;font-size:13px;border-bottom:1px solid #2f3336}
+  .note b{color:#1d9bf0}
+  article{padding:14px 16px;border-bottom:1px solid #2f3336}
+  .who{font-weight:700} .who span{color:#71767b;font-weight:400;font-size:13px}
+  .txt{margin:6px 0 10px;line-height:1.55;white-space:pre-wrap}
+  .acts{display:flex;gap:28px;color:#71767b;font-size:13px}
+  .acts button{background:none;border:none;color:#71767b;cursor:pointer;font-size:13px;padding:0}
+  .acts button.liked{color:#f91880}
+  .end{padding:28px 16px;text-align:center;color:#71767b}
+  .end b{color:#e7e9ea;display:block;font-size:16px;margin-bottom:6px}
+  form{padding:14px 16px;border-bottom:1px solid #2f3336}
+  form input,form textarea{width:100%;background:#16181c;border:1px solid #2f3336;color:#e7e9ea;border-radius:8px;padding:10px;margin:4px 0;font-size:14px}
+  form button{background:#1d9bf0;color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:700;cursor:pointer}
+  .count{padding:10px 16px;color:#71767b;font-size:13px;border-bottom:1px solid #2f3336}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>フォロー中だけ</h1><p>おすすめ・広告・「For you」なし。フォローした人の投稿を時系列で表示するだけの見た目プロトタイプです。</p></header>
+<div class="tabs" id="tabs"></div>
+<div class="note">⚠️ これは<strong>見た目だけのプロトタイプ</strong>です。中身はサンプル投稿で、本物のXアカウントとはつながっていません。本物でおすすめを見ない方法は、下の「本物でやる方法」を使ってください。</div>
+<div class="count" id="count"></div>
+<main id="feed"></main>
+<div class="end" id="end"><b>ここまでが今日のフォロー中です</b>おすすめは出ません。ここで閉じてOKです。</div>
+<form id="add"><h3 style="margin:0 0 6px">自分の投稿を追加（この端末だけに保存）</h3>
+<input id="name" placeholder="表示名（例：佐藤）" maxlength="30">
+<textarea id="text" placeholder="投稿内容" rows="3" maxlength="280"></textarea>
+<button type="submit">投稿する</button></form>
+<div class="note" style="border-bottom:none"><b>本物でやる方法（X公式・一番現実的）</b><br>1. Xアプリ → プロフィール → リスト → 新しいリストを作成（名前は例「フォロー中だけ」）<br>2. フォロー中の人をそのリストに追加する<br>3. リストを開いてピン留めすると、ホームに「フォロー中だけ」タブが出ます<br>4. そのタブだけ見れば、広告・おすすめなしの時系列タイムラインになります。「フォロー中」タブでも同じですが、アプリが時々「おすすめ」に戻すので、リストのピン留めの方が安定します。</div>
+</div>
+<script>
+const SAMPLE=[
+ {list:"all",name:"サンプルA",handle:"@sample_a",time:"8:12",text:"これはサンプル投稿です。フォロー中の人の投稿が、ここに新しい順で並びます。"},
+ {list:"music",name:"サンプルB（音楽）",handle:"@sample_music",time:"7:48",text:"新曲のデモを上げました。おすすめ欄には出ません。"},
+ {list:"study",name:"サンプルC（勉強）",handle:"@sample_study",time:"7:20",text:"統計力学、今日はボーズ気体とBECの復習。"},
+ {list:"all",name:"サンプルD",handle:"@sample_d",time:"6:55",text:"朝の投稿サンプル。広告もおすすめもありません。"},
+];
+const LISTS=[{id:"all",label:"フォロー中すべて",sub:"時系列"},{id:"music",label:"音楽",sub:"リスト"},{id:"study",label:"勉強",sub:"リスト"}];
+let current="all";
+const feed=document.getElementById("feed"), tabs=document.getElementById("tabs"), count=document.getElementById("count");
+function mine(){try{return JSON.parse(localStorage.getItem("myPosts")||"[]")}catch(e){return[]}}
+function renderTabs(){tabs.innerHTML="";LISTS.forEach(l=>{const b=document.createElement("button");b.className=current===l.id?"active":"";b.innerHTML=l.label+"<small>"+l.sub+"</small>";b.onclick=()=>{current=l.id;render()};tabs.appendChild(b)})}
+function render(){
+ renderTabs();
+ const posts=[...mine().map(p=>({...p,mine:true})),...SAMPLE].filter(p=>current==="all"||p.list===current||p.mine&&current==="all");
+ feed.innerHTML="";
+ posts.forEach(p=>{
+  const a=document.createElement("article");
+  a.innerHTML=`<div class="who">${p.name} <span>${p.handle} ・ ${p.time}</span></div><div class="txt"></div><div class="acts"><button class="like">♡ いいね</button><button>↻ リポスト</button><button>💬 返信</button></div>`;
+  a.querySelector(".txt").textContent=p.text;
+  a.querySelector(".like").onclick=e=>{e.target.classList.toggle("liked");e.target.textContent=e.target.classList.contains("liked")?"♥ いいね済み":"♡ いいね"};
+  feed.appendChild(a);
+ });
+ count.textContent=`表示中：${posts.length}件（${LISTS.find(l=>l.id===current).label}）・おすすめ 0件・広告 0件`;
+ document.getElementById("end").style.display="block";
+}
+document.getElementById("add").addEventListener("submit",e=>{
+ e.preventDefault();
+ const name=document.getElementById("name").value.trim()||"あなた";
+ const text=document.getElementById("text").value.trim();
+ if(!text) return;
+ const arr=mine(); arr.unshift({list:"all",name,handle:"@you",time:"たった今",text});
+ localStorage.setItem("myPosts",JSON.stringify(arr));
+ document.getElementById("text").value=""; current="all"; render();
+});
+render();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
